@@ -186,7 +186,7 @@ function initialize()
 	//CHURCH
 
 	gltfLoader.load(
-		'/smallest church.glb',
+		'/smallest church23.glb',
 		(gltf) =>
 		{
 		  
@@ -289,15 +289,15 @@ function initialize()
 	
 	// textures from http://www.humus.name/
 	let skyMaterialArray2 = [
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/posx.jpg"), side: THREE.BackSide } ),
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/negx.jpg"), side: THREE.BackSide } ),
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/posy.jpg"), side: THREE.BackSide } ),
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/negy.jpg"), side: THREE.BackSide } ),
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/posz.jpg"), side: THREE.BackSide } ),
-		new THREE.MeshBasicMaterial( { map: loader.load("moutain/negz.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
+		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
 	];
 	let skyMesh2 = new THREE.Mesh(
-		new THREE.BoxGeometry(30,30,30),
+		new THREE.BoxGeometry(10,10,10),
 		skyMaterialArray2 );
 	skyMesh2.position.x = 20;
 	scene.add(skyMesh2);
