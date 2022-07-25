@@ -186,24 +186,16 @@ function initialize()
 	//CHURCH
 
 	gltfLoader.load(
-		'/smallest church23.glb',
+		'/wallpaper.glb',
 		(gltf) =>
 		{
 		  
-		  let church = gltf.scene
+		  let church = gltf.scene.children[0].geometry;
 	  
-		  console.log(church)
-		  church.scale.x=10
-		  church.scale.y=10
-		  church.scale.z=10
-		  // church.position.z-=1
-		  church.position.y=-1
-	  
-		  scene.add(church)
+		
 	  
 	  
-		}
-	  )
+	
 	// floor
 	let floorGeometry = new THREE.PlaneGeometry(100, 100);
 	let floorMaterial = new THREE.MeshBasicMaterial({ 
@@ -241,7 +233,7 @@ function initialize()
 	scene.add(skyMesh1);
 	
 	portalA = new THREE.Mesh(
-		new THREE.CircleGeometry(1, 64),
+		church,
 		defaultMaterial.clone()
 	);
 	portalA.material.opacity = 0.5;
@@ -344,6 +336,9 @@ function initialize()
 	blocker3.material.color = new THREE.Color(0x0000ff);
 	blocker3.position.set(26,0.25,-6);
 	scene.add(blocker3);
+
+}
+)
 }
 
 function update()
