@@ -122,6 +122,14 @@ class Keyboard
 
 }
 
+const orangeMaterial = new THREE.MeshBasicMaterial({color:"orange"})
+
+const pinkMaterial = new THREE.MeshBasicMaterial({color:"pink"})
+
+const greenMaterial = new THREE.MeshBasicMaterial({color:"green"})
+
+const yellowMaterial = new THREE.MeshBasicMaterial({color:"yellow"})
+
 
 
 
@@ -181,9 +189,38 @@ function initialize()
 	keyboard = new Keyboard();
 	
 	let loader = new THREE.TextureLoader();
+
+		// floor
+		let floorGeometry = new THREE.PlaneGeometry(100, 100);
+		let floorMaterial = new THREE.MeshBasicMaterial({ 
+			color:"red",
+			transparent: true,
+			opacity: 0.5,
+		});
+		let floorMesh = new THREE.Mesh( floorGeometry, floorMaterial );
+		floorMesh.rotation.x = -Math.PI/2;
+		// scene.add( floorMesh );
+		
+		// material for portals and blockers
+		let defaultMaterial = new THREE.MeshBasicMaterial({
+			map: loader.load("/sphere-colored.png"), 
+			color: 0x444444,
+			// w,
+			transparent: true
+		});
 	
 
 	//CHURCH
+
+	// portalA.position.set(-22, 0.5, -3);
+
+	gltfLoader.load(
+		'/wallpaper.glb',
+		(gltf) =>
+		{
+
+
+		})
 
 	gltfLoader.load(
 		'/wallpaper.glb',
@@ -196,24 +233,7 @@ function initialize()
 	  
 	  
 	
-	// floor
-	let floorGeometry = new THREE.PlaneGeometry(100, 100);
-	let floorMaterial = new THREE.MeshBasicMaterial({ 
-		color:"red",
-		transparent: true,
-		opacity: 0.5,
-	});
-	let floorMesh = new THREE.Mesh( floorGeometry, floorMaterial );
-	floorMesh.rotation.x = -Math.PI/2;
-	// scene.add( floorMesh );
-	
-	// material for portals and blockers
-	let defaultMaterial = new THREE.MeshBasicMaterial({
-		map: loader.load("/sphere-colored.png"), 
-		color: 0x444444,
-		side: THREE.DoubleSide,
-		transparent: true
-	});
+
 	
 	// Portal A ================================
 	
@@ -227,7 +247,7 @@ function initialize()
 		new THREE.MeshBasicMaterial( { map: loader.load("/nz.png"), side: THREE.BackSide } ),
 	];
 	let skyMesh1 = new THREE.Mesh(
-		new THREE.BoxGeometry(90,90,90),
+		new THREE.BoxGeometry(10,10,10),
 		skyMaterialArray1 );
 	skyMesh1.position.x = -20;
 	scene.add(skyMesh1);
@@ -237,19 +257,15 @@ function initialize()
 		defaultMaterial.clone()
 	);
 	portalA.material.opacity = 0.5;
-	portalA.position.set(-22, 0.5, -3);
-	portalA.rotation.y = Math.PI/4;
+	// portalA.position.set(-22, 0.5, -3);
+	// portalA.rotation.y = Math.PI/4;
 	portalA.layers.set(1);
 	scene.add(portalA);
 	
-	portalRing = new THREE.Mesh(
-		new THREE.RingGeometry(1, 1.1, 64),
-		new THREE.MeshBasicMaterial({ color: 0xffff00, side: THREE.DoubleSide, transparent:true })
-	);
-	portalRing.position.copy( portalA.position );
-	portalRing.rotation.copy( portalA.rotation );
-	portalRing.layers.set(0);
-	scene.add(portalRing);
+
+})
+
+
 	
 	// used to visualize position of camera from top view
 	let mainCameraMesh = new THREE.Mesh( 
@@ -262,7 +278,7 @@ function initialize()
 
 	// used to move main camera around
 	mainMover = new THREE.Group();
-	mainMover.position.set(-21, 0.5, 0);
+	// mainMover.position.set(-21, 0.5, 0);
 	mainMover.add( mainCamera );
 	mainMover.add( mainCameraMesh );
 	scene.add( mainMover );
@@ -271,10 +287,11 @@ function initialize()
 	
 	blocker1 = new THREE.Mesh(
 		new THREE.SphereGeometry(0.25, 32, 32),
-		defaultMaterial.clone()
+		// defaultMaterial.clone()
+		orangeMaterial
 	);
 	blocker1.material.color = new THREE.Color(0xff0000);
-	blocker1.position.set(-21.25, 0.5, -2);
+	// blocker1.position.set(-21.25, 0.5, -2);
 	scene.add(blocker1);
 		
 	// Portal B ================================
@@ -289,7 +306,7 @@ function initialize()
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
 	];
 	let skyMesh2 = new THREE.Mesh(
-		new THREE.BoxGeometry(10,10,10),
+		new THREE.BoxGeometry(50,50,50),
 		skyMaterialArray2 );
 	skyMesh2.position.x = 20;
 	scene.add(skyMesh2);
@@ -323,7 +340,8 @@ function initialize()
 	
 	blocker2 = new THREE.Mesh(
 		new THREE.SphereGeometry(0.20, 32, 32),
-		defaultMaterial.clone()
+		// defaultMaterial.clone()
+		greenMaterial
 	);
 	blocker2.material.color = new THREE.Color(0x00ff00);
 	blocker2.position.set(23.25,0.25,-4.5);
@@ -338,8 +356,7 @@ function initialize()
 	scene.add(blocker3);
 
 }
-)
-}
+
 
 function update()
 {
@@ -351,42 +368,42 @@ function update()
 	
 	// portal ring color cycle
 	
-	portalRing.material.color.setHSL( totalTime/10 % 1, 1, 0.75 );
+	// portalRing.material.color.setHSL( totalTime/10 % 1, 1, 0.75 );
 	
 	// move main camera
 	
-	// let translateSpeed = 0.5; // units per second
-	// let distance = translateSpeed * deltaTime;
-	// let rotateSpeed = Math.PI/3; // radians per second
-	// let angle = rotateSpeed * deltaTime;
+	let translateSpeed = 0.5; // units per second
+	let distance = translateSpeed * deltaTime;
+	let rotateSpeed = Math.PI/3; // radians per second
+	let angle = rotateSpeed * deltaTime;
 	
-	// if (keyboard.isKeyPressed("W"))
-	// 	mainMover.translateZ( -distance );
-	// if (keyboard.isKeyPressed("S"))
-	// 	mainMover.translateZ( distance );
+	if (keyboard.isKeyPressed("W"))
+		mainMover.translateZ( -distance );
+	if (keyboard.isKeyPressed("S"))
+		mainMover.translateZ( distance );
 		
-	// if (keyboard.isKeyPressed("A"))
-	// 	mainMover.translateX( -distance );
-	// if (keyboard.isKeyPressed("D"))
-	// 	mainMover.translateX( distance );
+	if (keyboard.isKeyPressed("A"))
+		mainMover.translateX( -distance );
+	if (keyboard.isKeyPressed("D"))
+		mainMover.translateX( distance );
 		
-	// if (keyboard.isKeyPressed("R"))
-	// 	mainMover.translateY( distance );
-	// if (keyboard.isKeyPressed("F"))
-	// 	mainMover.translateY( -distance );
+	if (keyboard.isKeyPressed("R"))
+		mainMover.translateY( distance );
+	if (keyboard.isKeyPressed("F"))
+		mainMover.translateY( -distance );
 		
-	// if (keyboard.isKeyPressed("Q"))
-	// 	mainMover.rotateY( angle );
-	// if (keyboard.isKeyPressed("E"))
-	// 	mainMover.rotateY( -angle );
+	if (keyboard.isKeyPressed("Q"))
+		mainMover.rotateY( angle );
+	if (keyboard.isKeyPressed("E"))
+		mainMover.rotateY( -angle );
 		
-	// if (keyboard.isKeyPressed("T"))
-	// 	mainMover.children[0].rotateX( angle );
-	// if (keyboard.isKeyPressed("G"))
-	// 	mainMover.children[0].rotateX( -angle );
+	if (keyboard.isKeyPressed("T"))
+		mainMover.children[0].rotateX( angle );
+	if (keyboard.isKeyPressed("G"))
+		mainMover.children[0].rotateX( -angle );
 	
 	// relatively align other camera with main camera
-	
+	if(portalA){
 	let relativePosition = portalA.worldToLocal( mainMover.position.clone() );
 	otherMover.position.copy( portalB.localToWorld( relativePosition ) );
 	
@@ -395,6 +412,7 @@ function update()
 	
 	// keep camera tilt in sync
 	otherCamera.rotation.x = mainCamera.rotation.x;
+	}
 }
 
 function render()
@@ -459,6 +477,7 @@ function render()
 	
 		
 		// determine which side of the plane camera is on, for clipping plane orientation.
+		if(portalA){
 		let portalToCamera = new THREE.Vector3().subVectors( mainMover.position.clone(), portalA.position.clone() ); //  applyQuaternion( mainMover.quaternion );
 		let normalPortal = new THREE.Vector3(0,0,1).applyQuaternion( portalA.quaternion );
 		let clipSide = -Math.sign( portalToCamera.dot(normalPortal) );
@@ -467,7 +486,7 @@ function render()
 		let clipPoint = portalB.position;
 		let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
 		renderer.clippingPlanes = [clipPlane];
-		
+		}
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
 		
