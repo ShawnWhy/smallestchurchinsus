@@ -10,7 +10,7 @@ import gsap from "gsap"
 import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
 import { GridBroadphase } from 'cannon'
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils';
-import Stats from '../node_modules/stats.js'
+import Stats from 'stats.js'
 const gltfLoader = new GLTFLoader()
 
 
