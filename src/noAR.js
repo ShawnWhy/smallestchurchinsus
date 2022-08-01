@@ -508,14 +508,14 @@ function render()
 		
 		// determine which side of the plane camera is on, for clipping plane orientation.
 		if(portalA){
-		let portalToCamera = new THREE.Vector3().subVectors( mainMover.position.clone(), portalA.position.clone() ); //  applyQuaternion( mainMover.quaternion );
-		let normalPortal = new THREE.Vector3(0,0,1).applyQuaternion( portalA.quaternion );
-		let clipSide = -Math.sign( portalToCamera.dot(normalPortal) );
+		// let portalToCamera = new THREE.Vector3().subVectors( mainMover.position.clone(), portalA.position.clone() ); //  applyQuaternion( mainMover.quaternion );
+		// let normalPortal = new THREE.Vector3(0,0,1).applyQuaternion( portalA.quaternion );
+		// let clipSide = -Math.sign( portalToCamera.dot(normalPortal) );
 		
-		let clipNormal = new THREE.Vector3(0, 0, clipSide).applyQuaternion( portalB.quaternion );
-		let clipPoint = portalB.position;
-		let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
-		renderer.clippingPlanes = [clipPlane];
+		// let clipNormal = new THREE.Vector3(0, 0, clipSide).applyQuaternion( portalB.quaternion );
+		// let clipPoint = portalB.position;
+		// let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
+		// renderer.clippingPlanes = [clipPlane];
 		}
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
