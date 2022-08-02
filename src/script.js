@@ -236,14 +236,10 @@ function initialize()
 			// building.scale.z*=.1
 			console.log(building.children)
 			let children= building.children
-			children.forEach((child)=>{
-
-				// child.material= orangeMaterial;
-				// child.material.opacity = 0.5;
-				// child.layers.set(1)
-
-
-			})
+			children[2].material= defaultMaterial.clone()
+			children[2].material.opacity= 0.5;
+			children[2].layers.set(1)
+		
 		
 		scene.add(building)
 
@@ -274,7 +270,7 @@ function initialize()
 		new THREE.MeshBasicMaterial( { map: loader.load("/nz.png"), side: THREE.BackSide } ),
 	];
 	let skyMesh1 = new THREE.Mesh(
-		new THREE.BoxGeometry(10,10,10),
+		new THREE.BoxGeometry(50,50,50),
 		skyMaterialArray1 );
 	skyMesh1.position.x = -20;
 	scene.add(skyMesh1);
@@ -287,7 +283,7 @@ function initialize()
 	portalA.scale.x*=.999;
 	portalA.scale.y*=.999;
 	portalA.scale.z*=.999;
-	// portalA.position.set(-22, 0.5, -3);
+	portalA.position.set(-22, 0.5, -3);
 	// portalA.rotation.y = Math.PI/4;
 	portalA.layers.set(1);
 	scene.add(portalA);
@@ -392,6 +388,8 @@ function update()
 {
 	stats.update();
 	keyboard.update();
+	// otherCamera.rotation.y +=.01;
+
 	// blocker1.rotation.y += 0.01;
 	// blocker2.rotation.y += 0.01;
 	// blocker3.rotation.y += 0.01;
@@ -441,7 +439,7 @@ function update()
 	otherMover.quaternion.copy( relativeRotation.multiply(portalB.quaternion) ); 
 	
 	// keep camera tilt in sync
-	otherCamera.rotation.x = mainCamera.rotation.x;
+	// otherCamera.rotation.x = mainCamera.rotation.x;
 	}
 }
 
@@ -450,16 +448,16 @@ function render()
 	if ( keyboard.isKeyPressed("1") ) 
 	{
 		// view from main camera
-		mainCamera.layers.enable(0);
+		// mainCamera.layers.enable(0);
 		mainCamera.layers.enable(1);
 		renderer.render( scene, mainCamera );
 	}
 	else if ( keyboard.isKeyPressed("2") )
 	{
 		// view from other camera 
-		otherCamera.layers.enable(0);
+		// otherCamera.layers.enable(0);
 		otherCamera.layers.enable(2);
-		renderer.render( scene, mainCamera );
+		renderer.render( scene, otherCamera );
 	}
 	else if (keyboard.isKeyPressed("3"))
 	{
@@ -515,7 +513,7 @@ function render()
 		let clipNormal = new THREE.Vector3(0, 0, clipSide).applyQuaternion( portalB.quaternion );
 		let clipPoint = portalB.position;
 		let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
-		renderer.clippingPlanes = [clipPlane];
+		// renderer.clippingPlanes = [clipPlane];
 		}
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
@@ -523,8 +521,8 @@ function render()
 		gl.stencilFunc(gl.EQUAL, 1, 0xff);
 		gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 		
-		otherCamera.layers.set(2);
-		renderer.render( scene, otherCamera );
+		otherCamera.layers.set(0);
+		renderer.render( scene, topCamera );
 		
 		// disable clipping planes
 		renderer.clippingPlanes = [];
@@ -561,6 +559,7 @@ function animate()
 	requestAnimationFrame(animate);
 	deltaTime = clock.getDelta();
 	totalTime += deltaTime;
+
 	update();
 	render();
 }
