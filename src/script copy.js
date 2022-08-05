@@ -1,113 +1,139 @@
 import './style.css'
 import * as THREE from 'three'
-import { FirstPersonControls}from 'three/examples/jsm/controls/FirstPersonControls.js'
-
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 // import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { LoopOnce, SphereGeometry, TextureLoader } from 'three'
-import CANNON, { Sphere } from 'cannon'
 import $ from "./Jquery"
+import gsap from "gsap"
+import { ARButton } from 'three/examples/jsm/webxr/ARButton.js';
+import { GridBroadphase } from 'cannon'
+import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils';
 import Stats from '../node_modules/stats.js'
-import { PointerLockControls } from './PointerLockControls.js';
-
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-let canJump = false;
-let lock = false;
-let mixer;
-let Eggmixer;
-let shellmixer
-let pearmixer
-let doormixer
+const gltfLoader = new GLTFLoader()
 
 
-let prevTime = performance.now();
-const velocity = new THREE.Vector3();
-const direction = new THREE.Vector3();
-const vertex = new THREE.Vector3();
-const color = new THREE.Color();
+class Keyboard
+{
+	constructor()
+	{
+		// Event listeners add keys to Queues.
+		// Update method updates Sets accordingly.
+		this.keyDownQueue  = new Set();
+		this.keyUpQueue    = new Set();
+		
+		this.keyDownSet    = new Set();
+		this.keyPressedSet = new Set();
+		this.keyUpSet      = new Set();
+		
+		this.onKeyDown = function(key) {};
+		this.onKeyUp   = function(key) {};
+		
+		let self = this;
+		
+		document.addEventListener( "keydown", 
+			function(eventData) 
+			{ 
+				let key = eventData.key;
+				if (key == " ")
+					key = "Space";
+				if (key.length == 1)
+					key = key.toUpperCase();
+				self.keyDownQueue.add( key ); 
+				// activate callback function (only once)
+				if ( !self.keyPressedSet.has(key) )
+					self.onKeyDown(key);
+			}
+		);
+		
+		document.addEventListener( "keyup", 
+			function(eventData) 
+			{ 
+				let key = eventData.key;
+				if (key == " ")
+					key = "Space";
+				if (key.length == 1)
+					key = key.toUpperCase();
+				self.keyUpQueue.add( key ); 
+				// activate callback function
+				self.onKeyUp(key);
+			} 
+		);
+	};
+	
+	update()
+	{
+		// clear previous discrete event status
+		this.keyDownSet.clear();
+		this.keyUpSet.clear();
+		
+		// update current event status
+		for (let k of this.keyDownQueue)
+		{
+			// avoid multiple keydown events while holding key
+            if ( !this.keyPressedSet.has(k) )
+            {
+                this.keyDownSet.add(k);
+                this.keyPressedSet.add(k);
+            }
+		}
+		
+		for (let k of this.keyUpQueue)
+		{
+			this.keyPressedSet.delete(k);
+			this.keyUpSet.add(k);
+		}
+		
+		// clear the queues used to store events
+		this.keyDownQueue.clear();
+		this.keyUpQueue.clear();
+	};
+	
+	// only true for a single frame after key down
+	isKeyDown( keyName )
+	{
+		return ( this.keyDownSet.has(keyName) );
+	};
+	
+	// true between key down and key up events
+	isKeyPressed( keyName )
+	{
+		return ( this.keyPressedSet.has(keyName) );
+	};
+	
+	// only true for a single frame after key up
+	isKeyUp( keyName )
+	{
+		return ( this.keyUpSet.has(keyName) );
+	};
+	
+	// set callback function
+	setOnKeyDown( callbackFunction )
+	{
+		this.onKeyDown = callbackFunction;
+	};
+
+	// set callback function
+	setOnKeyUp( callbackFunction )
+	{
+		this.onKeyUp = callbackFunction;
+	};
+
+}
+
+const orangeMaterial = new THREE.MeshBasicMaterial({color:"orange"})
+
+const pinkMaterial = new THREE.MeshBasicMaterial({color:"pink"})
+
+const greenMaterial = new THREE.MeshBasicMaterial({color:"green"})
+
+const yellowMaterial = new THREE.MeshBasicMaterial({color:"yellow"})
 
 
 
-const onKeyDown = function ( event ) {
 
-	console.log(event)
-
-	switch ( event.code ) {
-
-		case 'ArrowUp':
-		case 'KeyW':
-			moveForward = true;
-			break;
-
-		case 'ArrowLeft':
-		case 'KeyA':
-			moveLeft = true;
-			break;
-
-		case 'ArrowDown':
-		case 'KeyS':
-			moveBackward = true;
-			break;
-
-		case 'ArrowRight':
-		case 'KeyD':
-			moveRight = true;
-			break;
-
-		case 'Space':
-			if ( canJump === true ) velocity.y += 350;
-			canJump = false;
-			break;
-
-	}
-
-};
-
-const onKeyUp = function ( event ) {
-
-	console.log(event)
-
-
-	switch ( event.code ) {
-
-		case 'ArrowUp':
-		case 'KeyW':
-			moveForward = false;
-			break;
-
-		case 'ArrowLeft':
-		case 'KeyA':
-			moveLeft = false;
-			break;
-
-		case 'ArrowDown':
-		case 'KeyS':
-			moveBackward = false;
-			break;
-
-		case 'ArrowRight':
-		case 'KeyD':
-			moveRight = false;
-			break;
-
-	}
-
-};
-
-document.addEventListener( 'keydown', onKeyDown );
-document.addEventListener( 'keyup', onKeyUp );
-
-const textureLoader = new THREE.TextureLoader()
-
-
-var scene, camera, renderer, clock, deltaTime, totalTime, keyboard 
-
-let stats;
+var scene, camera, renderer, clock, deltaTime, totalTime, keyboard, stats;
 
 var mainMover, otherMover;
 var mainCamera, otherCamera, topCamera;
@@ -115,128 +141,12 @@ var portalA, portalB;
 var blocker1, blocker2, blocker3;
 var portalRing;
 
-let controls
-
-
-// var audiobounce = new Audio('/glass.wav');
-
-// const playHitSound = (collision) =>
-// {
-//     const impactStrength = collision.contact.getImpactVelocityAlongNormal()
-
-//     if(impactStrength > 10)
-//     {
-//         audiobounce.volume = Math.random()
-//         audiobounce.currentTime = 0
-//         audiobounce.play()
-//     }
-// }
-
-
-
-// Canvas
-const canvas = document.querySelector('canvas.webgl')
-
-// Scene
-scene = new THREE.Scene()
-
-//raycaster
-const raycaster = new THREE.Raycaster()
-
-//cannon
-
-
-/**
- * Sizes
- */
- const sizes = {
-    width: window.innerWidth,
-    height: window.innerHeight
-}
-
-window.addEventListener('resize', () =>
-{
-    // Update sizes
-    sizes.width = window.innerWidth
-    sizes.height = window.innerHeight
-
-    // Update camera
-    camera.aspect = sizes.width / sizes.height
-    camera.updateProjectionMatrix()
-
-    // Update renderer
-    renderer.setSize(sizes.width, sizes.height)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-    if(sizes.width>860){
-        camera.position.set(3, 0, 10)
-        }
-        else{
-            camera.position.set(-25, 0, -10)
-        }
-
-})
-
-const mouse = new THREE.Vector2()
-mouse.x = null
-mouse.y=null
-
-
-window.addEventListener('mousemove', (event) =>
-{
-    mouse.x = event.clientX / sizes.width * 2 - 1
-    mouse.y = - (event.clientY / sizes.height) * 2 + 1
-
-    // console.log(mouse)
-})
-
-
-
-const gltfLoader = new GLTFLoader()
-
-
-
-
-
-/**
- * Lights
- */
-const ambientLight = new THREE.AmbientLight('orange', .5)
-scene.add(ambientLight)
-
-// const directionalLight = new THREE.DirectionalLight('orange', 2)
-// directionalLight.castShadow = true
-// directionalLight.shadow.mapSize.set(1024, 1024)
-// directionalLight.shadow.camera.far = 15
-// directionalLight.shadow.camera.left = - 7
-// directionalLight.shadow.camera.top = 7
-// directionalLight.shadow.camera.right = 7
-// directionalLight.shadow.camera.bottom = - 7
-// directionalLight.position.set(- 5, 5, 0)
-// scene.add(directionalLight)
-
-
-
-
-/**
- * Camera
- */
-// Base camera
-camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-if(sizes.width>860){
-camera.position.set(3, 0, 10)
-}
-else{
-    camera.position.set(-25, 0, -10)
-}
-
-
-scene.add(camera)
-
+initialize();
+animate();
 
 function initialize()
 {
-	
+	scene = new THREE.Scene();
 				
 	mainCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	otherCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -267,17 +177,17 @@ function initialize()
 	// let pointLight = new THREE.PointLight();
 	// camera.add( pointLight );
 	
-	// renderer = new THREE.WebGLRenderer({
-	// 	antialias : true,
-	// 	alpha: false
-	// });
-	// renderer.setClearColor(new THREE.Color('lightgrey'), 0)
-	// renderer.setSize( window.innerWidth, window.innerHeight );
-	// renderer.domElement.style.position = 'absolute'
-	// renderer.domElement.style.top  = '0px'
-	// renderer.domElement.style.left = '0px'
-	// document.body.appendChild( renderer.domElement );
-	// window.addEventListener( 'resize', onWindowResize, false );
+	renderer = new THREE.WebGLRenderer({
+		antialias : true,
+		alpha: false
+	});
+	renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.domElement.style.position = 'absolute'
+	renderer.domElement.style.top  = '0px'
+	renderer.domElement.style.left = '0px'
+	document.body.appendChild( renderer.domElement );
+	window.addEventListener( 'resize', onWindowResize, false );
   
 	
 	stats = new Stats();
@@ -287,7 +197,7 @@ function initialize()
 	deltaTime = 0;
 	totalTime = 0;
 	
-	// keyboard = new Keyboard();
+	keyboard = new Keyboard();
 	
 	let loader = new THREE.TextureLoader();
 
@@ -332,18 +242,6 @@ function initialize()
 		
 		
 		scene.add(building)
-
-		Eggmixer = new THREE.AnimationMixer(children[0])
-        // console.log(mixer)
-		console.log(gltf.animations)
-        turnhead = Eggmixer.clipAction(gltf.animations[0]) 
-
-        walk = Egg.clipAction(gltf.animations[1]) 
-        // console.log(walk)
-        walk.timeScale=2.5
-        walk.clampWhenFinished=true
-        walk.play()
-        
 
 		})
 
@@ -395,20 +293,20 @@ function initialize()
 
 
 	
-	// // used to visualize position of camera from top view
-	// let mainCameraMesh = new THREE.Mesh( 
-	// 	new THREE.BoxGeometry(1,1,1), 
-	// 	new THREE.MeshBasicMaterial({
-	// 		map: loader.load("/border.png"),
-	// 		color: 0xff00ff
-	// 	}) 
-	// );
+	// used to visualize position of camera from top view
+	let mainCameraMesh = new THREE.Mesh( 
+		new THREE.BoxGeometry(1,1,1), 
+		new THREE.MeshBasicMaterial({
+			map: loader.load("/border.png"),
+			color: 0xff00ff
+		}) 
+	);
 
-	// // used to move main camera around
+	// used to move main camera around
 	mainMover = new THREE.Group();
 	// mainMover.position.set(-21, 0.5, 0);
 	mainMover.add( mainCamera );
-	// mainMover.add( mainCameraMesh );
+	mainMover.add( mainCameraMesh );
 	scene.add( mainMover );
 	
 	// blockers used to check depth test and clipping plane
@@ -483,17 +381,91 @@ function initialize()
 	// blocker3.position.set(26,0.25,-6);
 	// scene.add(blocker3);
 
-	controls = new PointerLockControls( mainCamera, canvas );
+}
 
 
-	scene.add( controls.getObject() );
+function update()
+{
+	stats.update();
+	keyboard.update();
+	// otherCamera.rotation.y +=.01;
 
-
+	// blocker1.rotation.y += 0.01;
+	// blocker2.rotation.y += 0.01;
+	// blocker3.rotation.y += 0.01;
+	
+	// portal ring color cycle
+	
+	// portalRing.material.color.setHSL( totalTime/10 % 1, 1, 0.75 );
+	
+	// move main camera
+	
+	let translateSpeed = 0.5; // units per second
+	let distance = translateSpeed * deltaTime;
+	let rotateSpeed = Math.PI/3; // radians per second
+	let angle = rotateSpeed * deltaTime;
+	
+	if (keyboard.isKeyPressed("W"))
+		mainMover.translateZ( -distance );
+	if (keyboard.isKeyPressed("S"))
+		mainMover.translateZ( distance );
+		
+	if (keyboard.isKeyPressed("A"))
+		mainMover.translateX( -distance );
+	if (keyboard.isKeyPressed("D"))
+		mainMover.translateX( distance );
+		
+	if (keyboard.isKeyPressed("R"))
+		mainMover.translateY( distance );
+	if (keyboard.isKeyPressed("F"))
+		mainMover.translateY( -distance );
+		
+	if (keyboard.isKeyPressed("Q"))
+		mainMover.rotateY( angle );
+	if (keyboard.isKeyPressed("E"))
+		mainMover.rotateY( -angle );
+		
+	if (keyboard.isKeyPressed("T"))
+		mainMover.children[0].rotateX( angle );
+	if (keyboard.isKeyPressed("G"))
+		mainMover.children[0].rotateX( -angle );
+	
+	// relatively align other camera with main camera
+	if(portalA){
+	let relativePosition = portalA.worldToLocal( mainMover.position.clone() );
+	otherMover.position.copy( portalB.localToWorld( relativePosition ) );
+	
+	let relativeRotation = mainMover.quaternion.clone().multiply( portalA.quaternion.clone().invert() );	
+	otherMover.quaternion.copy( relativeRotation.multiply(portalB.quaternion) ); 
+	
+	// keep camera tilt in sync
+	// otherCamera.rotation.x = mainCamera.rotation.x;
+	}
 }
 
 function render()
 {
-
+	if ( keyboard.isKeyPressed("1") ) 
+	{
+		// view from main camera
+		// mainCamera.layers.enable(0);
+		mainCamera.layers.enable(1);
+		renderer.render( scene, mainCamera );
+	}
+	else if ( keyboard.isKeyPressed("2") )
+	{
+		// view from other camera 
+		// otherCamera.layers.enable(0);
+		otherCamera.layers.enable(2);
+		renderer.render( scene, otherCamera );
+	}
+	else if (keyboard.isKeyPressed("3"))
+	{
+		// view from top camera
+		renderer.render( scene, topCamera );
+	}
+	else // default: portal effect
+	{
 		let gl = renderer.getContext();
 		
 		
@@ -521,7 +493,6 @@ function render()
 		gl.depthMask(false);
 		
 		renderer.render( scene, mainCamera );
-		raycaster.setFromCamera(mouse, mainCamera)
 		
 		// SECOND PASS
 		// goal: draw from the portal camera perspective (which is aligned relative to the second portal)
@@ -542,7 +513,7 @@ function render()
 		let clipNormal = new THREE.Vector3(0, 0, clipSide).applyQuaternion( portalB.quaternion );
 		let clipPoint = portalB.position;
 		let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
-		renderer.clippingPlanes = [clipPlane];
+		// renderer.clippingPlanes = [clipPlane];
 		}
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
@@ -551,7 +522,7 @@ function render()
 		gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 		
 		otherCamera.layers.set(0);
-		renderer.render( scene, otherCamera );
+		renderer.render( scene, topCamera );
 		
 		// disable clipping planes
 		renderer.clippingPlanes = [];
@@ -580,139 +551,22 @@ function render()
 		
 		// set things back to normal
 		renderer.autoClear = true;
-
-		controls = new PointerLockControls( mainCamera, canvas );
-		// // controls.target.set(0, .1, 0)
-		// controls.enableDamping = true
-
-	
-
-		scene.add( controls.getObject() );
-	
-		raycaster.setFromCamera(mouse, mainCamera)
-	// }
+	}
 }
 
+function animate()
+{
+	requestAnimationFrame(animate);
+	deltaTime = clock.getDelta();
+	totalTime += deltaTime;
 
-// Controls
-
-
-/**
- * Renderer
- */
-renderer = new THREE.WebGLRenderer({
-    canvas: canvas
-})
-
-// renderer.setClearColor( 'orange',.5);
-
-// renderer.shadowMap.enabled = true
-// renderer.shadowMap.type = THREE.PCFSoftShadowMap
-renderer.setSize(sizes.width, sizes.height)
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-
-
-let oldElapsedTime=null;
-
-clock = new THREE.Clock()
-let previousTime = 0
-
-canvas.addEventListener( 'click', function () {
-if(lock !== true){
-	controls.lock();
-	lock = true;
-	console.log(controls.pointerSpeed)
-
-}
-else{
-	controls.unlock();
-	lock = false;
-	console.log(controls.pointerSpeed)
-
-}
-
-} );
-
-
-const tick = () =>{
- 
-    
-    const elapsedTime = clock.getElapsedTime()
-    const deltaTime = elapsedTime - oldElapsedTime
-
-
-	
-
-
-
-
-
+	update();
 	render();
-	// console.log("SDSADAD")
-	// console.log(controls.isLocked)
-	if ( lock == true ) {
-		console.log("heye hey ")
-		console.log(controls.getObject().position)
-
-		raycaster.ray.origin.copy( controls.getObject().position );
-		raycaster.ray.origin.y -= 10;
-
-
-		let delta = ( elapsedTime - prevTime ) /10;
-		console.log(delta);
-
-		velocity.x -= velocity.x * 10.0 * delta;
-		velocity.z -= velocity.z * 10.0 * delta;
-
-		// velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
-
-		direction.z = Number( moveForward ) - Number( moveBackward );
-		direction.x = Number( moveRight ) - Number( moveLeft );
-		direction.normalize(); // this ensures consistent movements in all directions
-
-		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
-
-		controls.moveRight( - velocity.x * delta );
-		controls.moveForward( - velocity.z * delta );
-
-		controls.getObject().position.y += ( velocity.y * delta ); // new behavior
-		mainCamera.position.copy(controls.getObject().position)
-
-		// if ( controls.getObject().position.y < 10 ) {
-
-		// 	velocity.y = 0;
-		// 	controls.getObject().position.y = 10;
-		// 	mainCamera.position.copy(controls.getObject().position)
-		
-
-		// 	canJump = true;
-
-		}
-		mainCamera.position.copy(controls.getObject().position)
-		prevTime = elapsedTime;
-		oldElapsedTime = elapsedTime;
-
-		if(mixer)
-		{
-			mixer.update(deltaTime)
-		}
-
-
-
-
-	// }
-
-	
-
-	otherCamera.rotation.copy(mainCamera.rotation)
-	// console.log(otherCamera.quaternion)
-	// console.log(mainCamera.quaternion)
-	// console.log(controls.getObject().quaternion)
-
-    window.requestAnimationFrame(tick)
-
-
 }
-initialize();
-tick()
+
+function onWindowResize() 
+{
+	// camera.aspect = window.innerWidth / window.innerHeight;
+	// camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
