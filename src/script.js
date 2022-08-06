@@ -11,7 +11,9 @@ import CANNON, { Sphere } from 'cannon'
 import $ from "./Jquery"
 import Stats from '../node_modules/stats.js'
 import { PointerLockControls } from './PointerLockControls.js';
+import gsap from "gsap";
 
+let portalGroup
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
@@ -24,6 +26,19 @@ let shellmixer
 let pearmixer
 let doormixer
 let skyMaterialArray2 =[]
+let skyMesh2
+let fakePortal
+
+let target = new THREE.Vector3()
+
+let world = 1;
+
+let defaultMaterial = new THREE.MeshBasicMaterial({
+
+	color: 0x444444,
+	// w,
+	transparent: true
+});
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
@@ -35,7 +50,7 @@ const color = new THREE.Color();
 
 const onKeyDown = function ( event ) {
 
-	console.log(event)
+	// console.log(event)
 
 	switch ( event.code ) {
 
@@ -70,7 +85,7 @@ const onKeyDown = function ( event ) {
 
 const onKeyUp = function ( event ) {
 
-	console.log(event)
+	// console.log(event)
 
 
 	switch ( event.code ) {
@@ -120,11 +135,15 @@ let controls
 let eggIntersect = [];
 let shellIntersect = []
 let pearIntersect = []
+let portalIntersect = []
+
 
 let eggAnimation
 let shellAnimation
 let pearAnimation
 let doorAnimation
+
+let loader;
 
 
 
@@ -234,15 +253,7 @@ function initialize()
 				
 	mainCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	otherCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	topCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	
-	topCamera.position.set(0, 0, 0);
-	topCamera.lookAt( scene.position );	
-	scene.add( topCamera );
-	
-	topCamera.layers.enable(0); // automatic, but added for clarity
-	topCamera.layers.enable(1);
-	topCamera.layers.enable(2);
+
 
 	let ambientLight = new THREE.AmbientLight( 0xcccccc, 1.00 );
 	scene.add( ambientLight );
@@ -268,31 +279,8 @@ function initialize()
 	
 	// keyboard = new Keyboard();
 	
-	let loader = new THREE.TextureLoader();
+	 loader = new THREE.TextureLoader();
 
-		// floor
-		let floorGeometry = new THREE.PlaneGeometry(100, 100);
-		let floorMaterial = new THREE.MeshBasicMaterial({ 
-			color:"red",
-			transparent: true,
-			opacity: 0.5,
-		});
-		let floorMesh = new THREE.Mesh( floorGeometry, floorMaterial );
-		floorMesh.rotation.x = -Math.PI/2;
-		// scene.add( floorMesh );
-		
-		// material for portals and blockers
-		let defaultMaterial = new THREE.MeshBasicMaterial({
-			map: loader.load("/sphere-colored.png"), 
-			color: 0x444444,
-			// w,
-			transparent: true
-		});
-	
-
-	//CHURCH
-
-	// portalA.position.set(-22, 0.5, -3);
 
 	gltfLoader.load(
 		'/smallest church.glb',
@@ -308,6 +296,10 @@ function initialize()
 			children[4].material= defaultMaterial.clone()
 			children[4].material.opacity= 0.5;
 			children[4].layers.set(1)
+
+			children[0].children[0].children[1].material = new THREE.MeshBasicMaterial({
+				color:"white"
+			})
 		
 		
 		scene.add(building)
@@ -317,7 +309,7 @@ function initialize()
 		pearmixer = new THREE.AnimationMixer(children[2])
 		doormixer = new THREE.AnimationMixer(children[0])
         // console.log(mixer)
-		console.log(gltf.animations)
+		// console.log(gltf.animations)
         eggAnimation = Eggmixer.clipAction(gltf.animations[5]) 
 
         shellAnimation = shellmixer.clipAction(gltf.animations[11]) 
@@ -352,12 +344,7 @@ function initialize()
 		  
 		  let church = gltf.scene.children[0].geometry;
 	  
-		
-	  
-	  
-	
 
-	
 	// Portal A ================================
 	
 	// textures from http://www.humus.name/
@@ -376,17 +363,24 @@ function initialize()
 	scene.add(skyMesh1);
 	
 	portalA = new THREE.Mesh(
-		church,
+		new THREE.SphereGeometry(1, 32),
 		defaultMaterial.clone()
 	);
 	portalA.material.opacity = 0.5;
-	portalA.scale.x*=.999;
-	portalA.scale.y*=.999;
-	portalA.scale.z*=.999;
-	portalA.position.set(-22, 0.5, -3);
+	portalGroup = new THREE.Group();
+	portalA.position.set(0, 0.5, -3);
+	portalA.scale.y *=2;
+	portalA.scale.x *=.001
+	portalA.scale.y *=.001
+	portalA.scale.z *=.001
+	portalGroup.add(portalA)
+	portalGroup.rotation.y += Math.PI*.75;
 	// portalA.rotation.y = Math.PI/4;
 	portalA.layers.set(1);
-	scene.add(portalA);
+	scene.add(portalGroup);
+
+
+	
 	
 
 })
@@ -430,10 +424,10 @@ function initialize()
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
 	];
-	let skyMesh2 = new THREE.Mesh(
+	skyMesh2 = new THREE.Mesh(
 		new THREE.BoxGeometry(40,40,40),
 		skyMaterialArray2 );
-	skyMesh2.position.x = 50;
+	// skyMesh2.position.x = 50;
 	skyMesh2.layers.set(2)
 	scene.add(skyMesh2);
 	
@@ -461,28 +455,9 @@ function initialize()
 	// otherMover.add( otherCameraMesh );
 	// otherMover.add( otherCamera );
 	// scene.add(otherMover);
-	otherCamera.position.x=50;
+	// otherCamera.position.x=50;
 	scene.add(otherCamera)
 	
-	// blockers used to check depth test and clipping plane
-	
-	// blocker2 = new THREE.Mesh(
-	// 	new THREE.SphereGeometry(0.20, 32, 32),
-	// 	// defaultMaterial.clone()
-	// 	greenMaterial
-	// );
-	// blocker2.material.color = new THREE.Color(0x00ff00);
-	// blocker2.position.set(23.25,0.25,-4.5);
-	// scene.add(blocker2);
-	
-	// blocker3 = new THREE.Mesh(
-	// 	new THREE.SphereGeometry(0.20, 32, 32),
-	// 	defaultMaterial.clone()
-	// );
-	// blocker3.material.color = new THREE.Color(0x0000ff);
-	// blocker3.position.set(26,0.25,-6);
-	// scene.add(blocker3);
-
 	controls = new PointerLockControls( mainCamera, canvas );
 
 
@@ -494,7 +469,7 @@ function initialize()
 
 function render()
 {
-
+	if(world==1){
 		let gl = renderer.getContext();
 		
 		
@@ -511,8 +486,9 @@ function render()
 		gl.enable(gl.STENCIL_TEST);
 		
 		// layer 1 contains only the first portal
+		
 		mainCamera.layers.set(1); 
-
+			
 		gl.stencilFunc(gl.ALWAYS, 1, 0xff);
 		gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 		gl.stencilMask(0xff);
@@ -551,9 +527,11 @@ function render()
 		gl.stencilFunc(gl.EQUAL, 1, 0xff);
 		gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 		
-		otherCamera.layers.set(2);
-		renderer.render( scene, otherCamera );
 		
+		otherCamera.layers.set(2);
+		
+		renderer.render( scene, otherCamera );
+				
 		// disable clipping planes
 		renderer.clippingPlanes = [];
 		
@@ -576,8 +554,10 @@ function render()
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
 		
+		
 		mainCamera.layers.set(0); // layer 0 contains everything but portals
 		renderer.render( scene, mainCamera );
+		
 		
 		// set things back to normal
 		renderer.autoClear = true;
@@ -585,6 +565,18 @@ function render()
 		controls = new PointerLockControls( mainCamera, canvas );
 		// // controls.target.set(0, .1, 0)
 		// controls.enableDamping = true
+
+	}
+
+	else{
+
+		mainCamera.layers.enable(2);
+		controls = new PointerLockControls( mainCamera, canvas );
+
+		renderer.render( scene, mainCamera );
+
+
+	}
 
 	
 
@@ -594,39 +586,7 @@ function render()
 	// }
 }
 
-$(canvas).click((e)=>{
-	e.preventDefault()
-	e.stopPropagation()
-	if(shellIntersect.length>0){
-		skyMaterialArray2 = [
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
-		];
-	}
 
-	if(pearIntersect.length>0){
-		skyMaterialArray2 = [
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
-			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
-		];
-	}
-	if(eggIntersect.length>0){
-		doorAnimation.play()
-		doorAnimation.clampWhenFinished = true
-		doorAnimation.timeScale=3
-		doorAnimation.setLoop( THREE.LoopOnce )
-	}
-
-	
-})
 
 // Controls
 
@@ -655,18 +615,87 @@ canvas.addEventListener( 'click', function () {
 if(lock !== true){
 	controls.lock();
 	lock = true;
-	console.log(controls.pointerSpeed)
+	// console.log(controls.pointerSpeed)
 
 }
 else{
 	controls.unlock();
 	lock = false;
-	console.log(controls.pointerSpeed)
+	// console.log(controls.pointerSpeed)
 
 }
 
 } );
 
+
+
+
+$(canvas).click((e)=>{
+	// console.log(portalGroup)
+	
+	e.preventDefault()
+	e.stopPropagation()
+	// console.log(portalIntersect);
+
+
+
+	if(shellIntersect.length>0){
+		skyMaterialArray2 = [
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/posx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/negx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/posy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/negy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/posz.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("sea/negz.jpg"), side: THREE.BackSide } ),
+		];
+
+		skyMesh2.material = skyMaterialArray2;
+
+		
+	}
+
+	if(pearIntersect.length>0){
+		skyMaterialArray2 = [
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
+		];
+
+		skyMesh2.material = skyMaterialArray2;
+	}
+	if(eggIntersect.length>0){
+		if(world==1){
+		doorAnimation.play()
+		doorAnimation.clampWhenFinished = true
+		doorAnimation.timeScale=.5
+		doorAnimation.setLoop( THREE.LoopOnce )
+		gsap.to(portalA.scale,{duration:1,y:2})
+		gsap.to(portalA.scale,{duration:1,x:1})
+		gsap.to(portalA.scale,{duration:1,z:1})
+		// setTimeout(() => {
+		// 	world=2
+
+		// }, 2500);
+		}
+
+		else{
+			
+			
+			doorAnimation.reset()
+			doorAnimation.stop()
+
+			gsap.to(portalA.scale,{duration:1,y:.002})
+			gsap.to(portalA.scale,{duration:1,x:.001})
+			gsap.to(portalA.scale,{duration:1,z:.001})
+			world=1
+
+		}
+	}
+
+})
 
 const tick = () =>{
  
@@ -674,26 +703,17 @@ const tick = () =>{
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - oldElapsedTime
 
-
-	
-
-
-
-
-
 	render();
 	// console.log("SDSADAD")
 	// console.log(controls.isLocked)
 	if ( lock == true ) {
-		console.log("heye hey ")
-		console.log(controls.getObject().position)
+		// console.log("heye hey ")
+		// console.log(controls.getObject().position)
 
 		raycaster.ray.origin.copy( controls.getObject().position );
 		raycaster.ray.origin.y -= 10;
-
-
 		let delta = ( elapsedTime - prevTime ) /10;
-		console.log(delta);
+		// console.log(delta);
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
@@ -723,30 +743,34 @@ const tick = () =>{
 		// 	canJump = true;
 
 		}
+	if(portalA !=null){
+		portalIntersect = raycaster.intersectObject(portalA)
+		
+		// console.log(portalA.getWorldPosition(target))
+		// console.log(controls.getObject().position)
 
+		if(controls.getObject().position.z<portalA.getWorldPosition(target).z+1 &&
+		   controls.getObject().position.z>portalA.getWorldPosition(target).z-1 &&
+		   controls.getObject().position.x>portalA.getWorldPosition(target).x-1 &&
+		   controls.getObject().position.x<portalA.getWorldPosition(target).x+1){
 
+			world = 2
+		   }
+
+	}
 		    if(building != null){
-    eggIntersect = raycaster.intersectObject(building.children[1])
+    eggIntersect = raycaster.intersectObject(building.children[1	])
 	shellIntersect = raycaster.intersectObject(building.children[3].children[0].children[1])
 	pearIntersect = raycaster.intersectObject(building.children[2])
 
-  
 
     if(eggIntersect.length>0){
-		eggAnimation.play()
-	
-          
-            
+		eggAnimation.play()      
         }
 		else{
-
-
 			// doorAnimation.reset()
 			eggAnimation.stop()
 			// eggAnimation.reset()
-
-
-
 		}
 
 		if(pearIntersect.length>0){
@@ -778,11 +802,7 @@ const tick = () =>{
 
 			shellAnimation.reset()
 		}
-
-
 }
-
-
 		mainCamera.position.copy(controls.getObject().position)
 		prevTime = elapsedTime;
 		oldElapsedTime = elapsedTime;
@@ -806,6 +826,9 @@ const tick = () =>{
 		{
 			doormixer.update(deltaTime)
 		}
+
+
+		
 
 
 
