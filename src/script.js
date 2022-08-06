@@ -18,7 +18,7 @@ let moveLeft = false;
 let moveRight = false;
 let canJump = false;
 let lock = false;
-let mixer;
+let building;
 let Eggmixer;
 let shellmixer
 let pearmixer
@@ -117,6 +117,16 @@ var portalRing;
 
 let controls
 
+let eggIntersect = [];
+let shellIntersect = []
+let pearIntersect = []
+
+let eggAnimation
+let shellAnimation
+let pearAnimation
+let doorAnimation
+
+
 
 // var audiobounce = new Audio('/glass.wav');
 
@@ -190,8 +200,6 @@ window.addEventListener('mousemove', (event) =>
     // console.log(mouse)
 })
 
-
-
 const gltfLoader = new GLTFLoader()
 
 
@@ -203,20 +211,6 @@ const gltfLoader = new GLTFLoader()
  */
 const ambientLight = new THREE.AmbientLight('orange', .5)
 scene.add(ambientLight)
-
-// const directionalLight = new THREE.DirectionalLight('orange', 2)
-// directionalLight.castShadow = true
-// directionalLight.shadow.mapSize.set(1024, 1024)
-// directionalLight.shadow.camera.far = 15
-// directionalLight.shadow.camera.left = - 7
-// directionalLight.shadow.camera.top = 7
-// directionalLight.shadow.camera.right = 7
-// directionalLight.shadow.camera.bottom = - 7
-// directionalLight.position.set(- 5, 5, 0)
-// scene.add(directionalLight)
-
-
-
 
 /**
  * Camera
@@ -263,22 +257,7 @@ function initialize()
 	directionalLight.shadow.camera.bottom = - 7
 	directionalLight.position.set(- 5, 5, 0)
 	scene.add(directionalLight)
-	
-	// let pointLight = new THREE.PointLight();
-	// camera.add( pointLight );
-	
-	// renderer = new THREE.WebGLRenderer({
-	// 	antialias : true,
-	// 	alpha: false
-	// });
-	// renderer.setClearColor(new THREE.Color('lightgrey'), 0)
-	// renderer.setSize( window.innerWidth, window.innerHeight );
-	// renderer.domElement.style.position = 'absolute'
-	// renderer.domElement.style.top  = '0px'
-	// renderer.domElement.style.left = '0px'
-	// document.body.appendChild( renderer.domElement );
-	// window.addEventListener( 'resize', onWindowResize, false );
-  
+
 	
 	stats = new Stats();
 	document.body.appendChild( stats.dom );
@@ -320,7 +299,7 @@ function initialize()
 		(gltf) =>
 		{
 
-			let building = gltf.scene;
+			building = gltf.scene;
 			// building.scale.x*=.1
 			// building.scale.y*=.1
 			// building.scale.z*=.1
@@ -333,16 +312,35 @@ function initialize()
 		
 		scene.add(building)
 
-		Eggmixer = new THREE.AnimationMixer(children[0])
+		Eggmixer = new THREE.AnimationMixer(children[7])
+		shellmixer = new THREE.AnimationMixer(children[11])
+		pearmixer = new THREE.AnimationMixer(children[8])
+		doormixer = new THREE.AnimationMixer(children[6])
         // console.log(mixer)
 		console.log(gltf.animations)
-        turnhead = Eggmixer.clipAction(gltf.animations[0]) 
+        eggAnimation = Eggmixer.clipAction(gltf.animations[4]) 
 
-        walk = Egg.clipAction(gltf.animations[1]) 
+        shellAnimation = shellmixer.clipAction(gltf.animations[8]) 
+		pearAnimation = pearmixer.clipAction(gltf.animations[5])
+		doorAnimation = doormixer.clipAction(gltf.animations[3])  
+
+		
         // console.log(walk)
-        walk.timeScale=2.5
-        walk.clampWhenFinished=true
-        walk.play()
+        eggAnimation.timeScale=2.5
+        eggAnimation.clampWhenFinished=true
+        // eggAnimation.play()
+
+		shellAnimation.timeScale=2.5
+        shellAnimation.clampWhenFinished=true
+        // shellAnimation.play()
+
+		pearAnimation.timeScale=2.5
+        pearAnimation.clampWhenFinished=true
+        // pearAnimation.play()
+
+		doorAnimation.timeScale=2.5
+        doorAnimation.clampWhenFinished=true
+        // doorAnimation.play()
         
 
 		})
@@ -689,13 +687,64 @@ const tick = () =>{
 		// 	canJump = true;
 
 		}
+
+
+		    if(building != null){
+    eggIntersect = raycaster.intersectObject(building.children[7])
+	shellIntersect = raycaster.intersectObject(building.children[11])
+	pearIntersect = raycaster.intersectObject(building.children[8])
+
+
+
+
+	// Eggmixer = new THREE.AnimationMixer(children[7])
+	// 	shellmixer = new THREE.AnimationMixer(children[11])
+	// 	pearmixer = new THREE.AnimationMixer(children[8])
+	// 	doormixer = new THREE.AnimationMixer(children[6])
+    
+
+
+    if(eggIntersect.length>0){
+		eggAnimation.play()
+		doorAnimation.play()
+          
+            
+        }
+
+		if(pearIntersect.length>0){
+			pearAnimation.play()
+		}
+
+		if(shellIntersect.length>0){
+			shellAnimation.play()
+		}
+
+
+}
+
+
 		mainCamera.position.copy(controls.getObject().position)
 		prevTime = elapsedTime;
 		oldElapsedTime = elapsedTime;
 
-		if(mixer)
+		if(Eggmixer)
 		{
-			mixer.update(deltaTime)
+			Eggmixer.update(deltaTime)
+		}
+
+		if(shellmixer)
+		{
+			shellmixer.update(deltaTime)
+		}
+
+		if(pearmixer)
+		{
+			pearmixer.update(deltaTime)
+		}
+
+		if(doormixer)
+		{
+			doormixer.update(deltaTime)
 		}
 
 
