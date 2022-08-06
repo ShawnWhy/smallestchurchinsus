@@ -6,7 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import * as dat from 'lil-gui'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 // import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { LoopOnce, SphereGeometry, TextureLoader } from 'three'
+import { LoopOnce, Scene, SphereGeometry, TextureLoader } from 'three'
 import CANNON, { Sphere } from 'cannon'
 import $ from "./Jquery"
 import Stats from '../node_modules/stats.js'
@@ -23,7 +23,7 @@ let Eggmixer;
 let shellmixer
 let pearmixer
 let doormixer
-
+let skyMaterialArray2 =[]
 
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
@@ -236,7 +236,7 @@ function initialize()
 	otherCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	topCamera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	
-	topCamera.position.set(0, 30, 8);
+	topCamera.position.set(0, 0, 0);
 	topCamera.lookAt( scene.position );	
 	scene.add( topCamera );
 	
@@ -305,24 +305,24 @@ function initialize()
 			// building.scale.z*=.1
 			console.log(building.children)
 			let children= building.children
-			children[2].material= defaultMaterial.clone()
-			children[2].material.opacity= 0.5;
-			children[2].layers.set(1)
+			children[4].material= defaultMaterial.clone()
+			children[4].material.opacity= 0.5;
+			children[4].layers.set(1)
 		
 		
 		scene.add(building)
 
-		Eggmixer = new THREE.AnimationMixer(children[7])
-		shellmixer = new THREE.AnimationMixer(children[11])
-		pearmixer = new THREE.AnimationMixer(children[8])
-		doormixer = new THREE.AnimationMixer(children[6])
+		Eggmixer = new THREE.AnimationMixer(children[1])
+		shellmixer = new THREE.AnimationMixer(children[3])
+		pearmixer = new THREE.AnimationMixer(children[2])
+		doormixer = new THREE.AnimationMixer(children[0])
         // console.log(mixer)
 		console.log(gltf.animations)
-        eggAnimation = Eggmixer.clipAction(gltf.animations[4]) 
+        eggAnimation = Eggmixer.clipAction(gltf.animations[5]) 
 
-        shellAnimation = shellmixer.clipAction(gltf.animations[8]) 
-		pearAnimation = pearmixer.clipAction(gltf.animations[5])
-		doorAnimation = doormixer.clipAction(gltf.animations[3])  
+        shellAnimation = shellmixer.clipAction(gltf.animations[11]) 
+		pearAnimation = pearmixer.clipAction(gltf.animations[7])
+		doorAnimation = doormixer.clipAction(gltf.animations[0])  
 
 		
         // console.log(walk)
@@ -372,7 +372,7 @@ function initialize()
 	let skyMesh1 = new THREE.Mesh(
 		new THREE.BoxGeometry(50,50,50),
 		skyMaterialArray1 );
-	skyMesh1.position.x = -20;
+	// skyMesh1.position.x = -20;
 	scene.add(skyMesh1);
 	
 	portalA = new THREE.Mesh(
@@ -403,11 +403,10 @@ function initialize()
 	// );
 
 	// // used to move main camera around
-	mainMover = new THREE.Group();
-	// mainMover.position.set(-21, 0.5, 0);
-	mainMover.add( mainCamera );
+
+	
 	// mainMover.add( mainCameraMesh );
-	scene.add( mainMover );
+	scene.add( mainCamera );
 	
 	// blockers used to check depth test and clipping plane
 	
@@ -423,7 +422,7 @@ function initialize()
 	// Portal B ================================
 	
 	// textures from http://www.humus.name/
-	let skyMaterialArray2 = [
+	skyMaterialArray2 = [
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
 		new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
@@ -434,7 +433,8 @@ function initialize()
 	let skyMesh2 = new THREE.Mesh(
 		new THREE.BoxGeometry(40,40,40),
 		skyMaterialArray2 );
-	skyMesh2.position.x = 20;
+	skyMesh2.position.x = 50;
+	skyMesh2.layers.set(2)
 	scene.add(skyMesh2);
 	
 	portalB = new THREE.Mesh(
@@ -448,19 +448,21 @@ function initialize()
 	scene.add(portalB);
 	
 	// used to visualize position of camera from top view
-	let otherCameraMesh = new THREE.Mesh( 
-		new THREE.BoxGeometry(1,1,1), 
-		new THREE.MeshBasicMaterial({
-			map: loader.load("images/border.png"),
-			color: 0x00ffff
-		}) 
-	);
+	// let otherCameraMesh = new THREE.Mesh( 
+	// 	new THREE.BoxGeometry(1,1,1), 
+	// 	new THREE.MeshBasicMaterial({
+	// 		map: loader.load("images/border.png"),
+	// 		color: 0x00ffff
+	// 	}) 
+	// );
 
 	// used to move other camera around
-	otherMover = new THREE.Group();
-	otherMover.add( otherCameraMesh );
-	otherMover.add( otherCamera );
-	scene.add(otherMover);
+	// otherMover = new THREE.Group();
+	// otherMover.add( otherCameraMesh );
+	// otherMover.add( otherCamera );
+	// scene.add(otherMover);
+	otherCamera.position.x=50;
+	scene.add(otherCamera)
 	
 	// blockers used to check depth test and clipping plane
 	
@@ -485,6 +487,7 @@ function initialize()
 
 
 	scene.add( controls.getObject() );
+	controls.getObject().position.y+=.4
 
 
 }
@@ -533,14 +536,14 @@ function render()
 		
 		// determine which side of the plane camera is on, for clipping plane orientation.
 		if(portalA){
-		let portalToCamera = new THREE.Vector3().subVectors( mainMover.position.clone(), portalA.position.clone() ); //  applyQuaternion( mainMover.quaternion );
+		let portalToCamera = new THREE.Vector3().subVectors( mainCamera.position.clone(), portalA.position.clone() ); //  applyQuaternion( mainMover.quaternion );
 		let normalPortal = new THREE.Vector3(0,0,1).applyQuaternion( portalA.quaternion );
 		let clipSide = -Math.sign( portalToCamera.dot(normalPortal) );
 		
 		let clipNormal = new THREE.Vector3(0, 0, clipSide).applyQuaternion( portalB.quaternion );
 		let clipPoint = portalB.position;
 		let clipPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(clipNormal, clipPoint);
-		renderer.clippingPlanes = [clipPlane];
+		// renderer.clippingPlanes = [clipPlane];
 		}
 		gl.colorMask(true,true,true,true);
 		gl.depthMask(true);
@@ -548,7 +551,7 @@ function render()
 		gl.stencilFunc(gl.EQUAL, 1, 0xff);
 		gl.stencilOp(gl.KEEP, gl.KEEP, gl.KEEP);
 		
-		otherCamera.layers.set(0);
+		otherCamera.layers.set(2);
 		renderer.render( scene, otherCamera );
 		
 		// disable clipping planes
@@ -591,6 +594,39 @@ function render()
 	// }
 }
 
+$(canvas).click((e)=>{
+	e.preventDefault()
+	e.stopPropagation()
+	if(shellIntersect.length>0){
+		skyMaterialArray2 = [
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
+		];
+	}
+
+	if(pearIntersect.length>0){
+		skyMaterialArray2 = [
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negx.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negy.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/posz.jpg"), side: THREE.BackSide } ),
+			new THREE.MeshBasicMaterial( { map: loader.load("mountain/negz.jpg"), side: THREE.BackSide } ),
+		];
+	}
+	if(eggIntersect.length>0){
+		doorAnimation.play()
+		doorAnimation.clampWhenFinished = true
+		doorAnimation.timeScale=3
+		doorAnimation.setLoop( THREE.LoopOnce )
+	}
+
+	
+})
 
 // Controls
 
@@ -690,33 +726,57 @@ const tick = () =>{
 
 
 		    if(building != null){
-    eggIntersect = raycaster.intersectObject(building.children[7])
-	shellIntersect = raycaster.intersectObject(building.children[11])
-	pearIntersect = raycaster.intersectObject(building.children[8])
+    eggIntersect = raycaster.intersectObject(building.children[1])
+	shellIntersect = raycaster.intersectObject(building.children[3].children[0].children[1])
+	pearIntersect = raycaster.intersectObject(building.children[2])
 
-
-
-
-	// Eggmixer = new THREE.AnimationMixer(children[7])
-	// 	shellmixer = new THREE.AnimationMixer(children[11])
-	// 	pearmixer = new THREE.AnimationMixer(children[8])
-	// 	doormixer = new THREE.AnimationMixer(children[6])
-    
-
+  
 
     if(eggIntersect.length>0){
 		eggAnimation.play()
-		doorAnimation.play()
+	
           
             
         }
+		else{
+
+
+			// doorAnimation.reset()
+			eggAnimation.stop()
+			// eggAnimation.reset()
+
+
+
+		}
 
 		if(pearIntersect.length>0){
 			pearAnimation.play()
+			pearAnimation.play()
+			
+			pearAnimation.weight=1
+			pearAnimation.setEffectiveWeight(1)
+			pearAnimation.clampWhenFinished = true
+			pearAnimation.timeScale=3
+			pearAnimation.setLoop( THREE.LoopOnce )
+		}
+		else{
+
+			pearAnimation.reset()
 		}
 
 		if(shellIntersect.length>0){
 			shellAnimation.play()
+		
+			
+			shellAnimation.weight=1
+			shellAnimation.setEffectiveWeight(1)
+			shellAnimation.clampWhenFinished = true
+			shellAnimation.timeScale=3
+			shellAnimation.setLoop( THREE.LoopOnce )
+		}
+		else{
+
+			shellAnimation.reset()
 		}
 
 
