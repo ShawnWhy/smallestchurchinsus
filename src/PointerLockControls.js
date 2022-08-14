@@ -34,7 +34,7 @@ class PointerLockControls extends EventDispatcher {
 		this.minPolarAngle = 0; // radians
 		this.maxPolarAngle = Math.PI; // radians
 
-		this.pointerSpeed = 0.01;
+		this.pointerSpeed = 0.5;
 
 		const scope = this;
 

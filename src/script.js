@@ -13,6 +13,8 @@ import Stats from '../node_modules/stats.js'
 import { PointerLockControls } from './PointerLockControls.js';
 import gsap from "gsap";
 
+let walker
+
 let portalGroup
 let moveForward = false;
 let moveBackward = false;
@@ -25,6 +27,7 @@ let Eggmixer;
 let shellmixer
 let pearmixer
 let doormixer
+let walkermixer
 let skyMaterialArray2 =[]
 let skyMesh2
 let fakePortal
@@ -142,6 +145,8 @@ let eggAnimation
 let shellAnimation
 let pearAnimation
 let doorAnimation
+let walkAnimation
+
 
 let loader;
 
@@ -338,11 +343,27 @@ function initialize()
 		})
 
 	gltfLoader.load(
-		'/wallpaper.glb',
+		'/walker.glb',
 		(gltf) =>
 		{
 		  
-		  let church = gltf.scene.children[0].geometry;
+			walker = gltf.scene;
+			console.log(gltf.animations)
+			console.log(walker)
+			walkermixer = new THREE.AnimationMixer(walker)
+			walkAnimation = walkermixer.clipAction(gltf.animations[0])
+			walker.scale.x*=25;
+			walker.scale.y*=25;
+			walker.scale.z*=25;
+			walker.position.y=-1;
+			walker.position.z=1;
+			walker.position.x=-2;
+
+	  
+	  
+			scene.add(walker)
+			walkAnimation.play()
+	  
 	  
 
 	// Portal A ================================
@@ -562,7 +583,7 @@ function render()
 		// set things back to normal
 		renderer.autoClear = true;
 
-		controls = new PointerLockControls( mainCamera, canvas );
+		// controls = new PointerLockControls( mainCamera, canvas );
 		// // controls.target.set(0, .1, 0)
 		// controls.enableDamping = true
 
@@ -571,14 +592,12 @@ function render()
 	else{
 
 		mainCamera.layers.enable(2);
-		controls = new PointerLockControls( mainCamera, canvas );
+		// controls = new PointerLockControls( mainCamera, canvas );
 
 		renderer.render( scene, mainCamera );
 
 
 	}
-
-	
 
 		scene.add( controls.getObject() );
 	
@@ -744,7 +763,6 @@ const tick = () =>{
 
 		}
 	if(portalA !=null){
-		portalIntersect = raycaster.intersectObject(portalA)
 		
 		// console.log(portalA.getWorldPosition(target))
 		// console.log(controls.getObject().position)
@@ -759,7 +777,7 @@ const tick = () =>{
 
 	}
 		    if(building != null){
-    eggIntersect = raycaster.intersectObject(building.children[1	])
+    eggIntersect = raycaster.intersectObject(building.children[1])
 	shellIntersect = raycaster.intersectObject(building.children[3].children[0].children[1])
 	pearIntersect = raycaster.intersectObject(building.children[2])
 
@@ -825,6 +843,10 @@ const tick = () =>{
 		if(doormixer)
 		{
 			doormixer.update(deltaTime)
+		}
+		if(walkermixer)
+		{
+		  walkermixer.update(deltaTime)
 		}
 
 

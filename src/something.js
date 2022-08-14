@@ -1,4 +1,3 @@
-<script>
 
 var scene, camera, renderer, clock, deltaTime, totalTime;
 
@@ -245,4 +244,3 @@ function animate()
 	render();
 }
 
-</script>
